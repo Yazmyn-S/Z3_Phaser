@@ -1,16 +1,30 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite App</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathfinder and Vite App</title>
+    
+    <!-- Script files from both files -->
+    <script src="/lib/phaser.js"></script>
+    <script src="/lib/easystar-0.4.4.js"></script>
+    <script src="/src/Scenes/Load.js"></script>
+    <script src="/src/Scenes/Pathfinder.js"></script>
+    <script src="/src/main.js"></script>
     <script src="/z3-built.js"></script>
     <script>
       globalThis.global = { initZ3: globalThis.initZ3 };
     </script>
-  </head>
-  <body>
+</head>
+<body>
+    <!-- Containers from both files -->
+    <div id="phaser-game"></div>
     <div id="app"></div>
+    
+    <!-- Additional span element from File 1 -->
+    <span id="description"></span>
+    
+    <!-- Vite module script -->
     <script type="module" src="/main.js"></script>
-  </body>
+</body>
 </html>

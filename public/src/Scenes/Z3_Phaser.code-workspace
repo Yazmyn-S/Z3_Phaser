@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "../../../Z3_Phaser"
+		},
+		{
+			"path": "../../lib"
+		},
+		{
+			"path": "../../assets"
+		},
+		{
+			"path": ".."
+		}
+	],
+	"settings": {}
+}
