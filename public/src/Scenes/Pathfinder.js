@@ -11,6 +11,7 @@ class Pathfinder extends Phaser.Scene {
         this.SCALE = 2.0;
         this.TILEWIDTH = 40;
         this.TILEHEIGHT = 25;
+        this.my = {sprite: {}};
     }
 
     create() {
@@ -27,7 +28,7 @@ class Pathfinder extends Phaser.Scene {
 
         // Create townsfolk sprite
         // Use setOrigin() to ensure the tile space computations work well
-        my.sprite.purpleTownie = this.add.sprite(this.tileXtoWorld(5), this.tileYtoWorld(5), "purple").setOrigin(0,0);
+        this.my.sprite.purpleTownie = this.add.sprite(this.tileXtoWorld(5), this.tileYtoWorld(5), "purple").setOrigin(0,0);
         
         // Camera settings
         this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
@@ -49,7 +50,7 @@ class Pathfinder extends Phaser.Scene {
         // Tell EasyStar which tiles can be walked on
         this.finder.setAcceptableTiles(walkables);
 
-        this.activeCharacter = my.sprite.purpleTownie;
+        this.activeCharacter = this.my.sprite.purpleTownie;
 
         // Handle mouse clicks
         // Handles the clicks on the map to make the character move
@@ -59,6 +60,15 @@ class Pathfinder extends Phaser.Scene {
 
         this.cKey = this.input.keyboard.addKey('C');
         this.lowCost = false;
+
+        const { Solver, Int, And, Or, Distinct } = new window.Context("main");
+        const solver = new Solver();
+
+        // ddo constraints here
+
+        // Wheelbarrow.x > 30 && < 40
+        // Wheelbarrow.y > 5 && < 10
+        // Use original Z3 comparisons to make random constraints
 
     }
 

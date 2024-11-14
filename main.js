@@ -2,6 +2,7 @@ import './style.css'
 import { init } from 'z3-solver';
 
 const { Context } = await init();
+window.Context = Context;
 const { Solver, Int, And, Or, Distinct } = new Context("main");
 const solver = new Solver();
 
@@ -23,3 +24,21 @@ document.querySelector('#app').innerHTML = `
     <p>I guess I could've just put the results here too...</p>
   </div>
 `
+
+
+// game config
+let config = {
+  parent: 'phaser-game',
+  type: Phaser.CANVAS,
+  render: {
+      pixelArt: true  // prevent pixel art from getting blurred when scaled
+  },
+  width: 1280,
+  height: 800,
+  scene: [Load, Pathfinder]
+}
+
+const SCALE = 2.0;
+
+
+const game = new Phaser.Game(config);
