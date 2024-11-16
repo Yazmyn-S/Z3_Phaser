@@ -35,10 +35,15 @@ class Pathfinder extends Phaser.Scene {
 
         // Create grid of visible tiles for use with path planning
         let tinyTownGrid = this.layersToGrid([this.groundLayer, this.treesLayer, this.housesLayer]);
-        this.my.sprite.wheelBarrow = this.add.sprite(this.tileXtoWorld(37), this.tileYtoWorld(3), "purple").setOrigin(0, 0);
+        this.my.sprite.wheelBarrow = this.add.sprite(this.tileXtoWorld(37), this.tileYtoWorld(3), "wheelbarrow").setOrigin(0, 0);
+        this.my.sprite.sign = this.add.sprite(this.tileXtoWorld(36), this.tileYtoWorld(9), "sign").setOrigin(0, 0);
 
         let xVal = 37;
         let yVal = 3;
+
+        let xValSign = 36;
+        let yValSign = 9;
+
         const { Solver, Int, And } = new window.Context("main");
 
         // Function to get valid values
@@ -108,6 +113,10 @@ class Pathfinder extends Phaser.Scene {
             { label: "Inside the fence", constraints: { left: 35, right: 37, top: 3, bottom: 5 } },
         ];
 
+        const scenarioSign = [
+            {label: "sign", constraints: {left: 29, right: 36, top: 9, bottom: 10}}
+        ]
+
         // Process scenarios
         for (const scenario of scenarios) {
             const results = await getValidValues(scenario.constraints);
@@ -117,6 +126,15 @@ class Pathfinder extends Phaser.Scene {
         // Use original Z3 comparisons to make random constraints
         this.my.sprite.wheelBarrow.x = this.tileXtoWorld(xVal);
         this.my.sprite.wheelBarrow.y = this.tileYtoWorld(yVal);
+
+        for (const scenario of scenarioSign){
+            const resultsSign = await getValidValues(scenario.constraints);
+            outputResult(scenario.label, resultsSign);
+        }
+
+        this.my.sprite.sign.x = this.tileXtoWorld(xVal);
+        this.my.sprite.sign.y = this.tileYtoWorld(yVal);
+
     }
 
     update() {}
