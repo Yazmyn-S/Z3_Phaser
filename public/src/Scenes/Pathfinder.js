@@ -3,18 +3,17 @@ class Pathfinder extends Phaser.Scene {
         super("pathfinderScene");
     }
 
-    preload() {
-    }
+    preload() {}
 
     init() {
         this.TILESIZE = 16;
         this.SCALE = 2.0;
         this.TILEWIDTH = 40;
         this.TILEHEIGHT = 25;
-        this.my = {sprite: {}};
+        this.my = { sprite: {} };
     }
 
-    create() {
+    async create() {
         // Create a new tilemap which uses 16x16 tiles, and is 40 tiles wide and 25 tiles tall
         this.map = this.add.tilemap("three-farmhouses", this.TILESIZE, this.TILESIZE, this.TILEHEIGHT, this.TILEWIDTH);
 
@@ -28,74 +27,99 @@ class Pathfinder extends Phaser.Scene {
 
         // Create townsfolk sprite
         // Use setOrigin() to ensure the tile space computations work well
-        this.my.sprite.purpleTownie = this.add.sprite(this.tileXtoWorld(5), this.tileYtoWorld(5), "purple").setOrigin(0,0);
-        
+        this.my.sprite.purpleTownie = this.add.sprite(this.tileXtoWorld(5), this.tileYtoWorld(5), "purple").setOrigin(0, 0);
+
         // Camera settings
         this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
         this.cameras.main.setZoom(this.SCALE);
 
         // Create grid of visible tiles for use with path planning
         let tinyTownGrid = this.layersToGrid([this.groundLayer, this.treesLayer, this.housesLayer]);
+        this.my.sprite.wheelBarrow = this.add.sprite(this.tileXtoWorld(37), this.tileYtoWorld(3), "purple").setOrigin(0, 0);
 
-        let walkables = [1, 2, 3, 30, 40, 41, 42, 43, 44, 95, 13, 14, 15, 25, 26, 27, 37, 38, 39, 70, 84];
+        let xVal = 37;
+        let yVal = 3;
+        const { Solver, Int, And } = new window.Context("main");
 
-        // Initialize EasyStar pathfinder
-        this.finder = new EasyStar.js();
+        // Function to get valid values
+        async function getValidValues(constraints) {
+            const { left, right, top, bottom } = constraints;
 
-        // Pass grid information to EasyStar
-        // EasyStar doesn't natively understand what is currently on-screen,
-        // so, you need to provide it that information
-        this.finder.setGrid(tinyTownGrid);
+            console.log("Constraints:", { left, right, top, bottom });
 
-        // Tell EasyStar which tiles can be walked on
-        this.finder.setAcceptableTiles(walkables);
+            const solver = new Solver();
+            const x = Int.const("x");
+            const y = Int.const("y");
 
-        this.activeCharacter = this.my.sprite.purpleTownie;
+            const validX = new Set();
+            const validY = new Set();
+            const validPairs = [];
 
-        // Handle mouse clicks
-        // Handles the clicks on the map to make the character move
-        // The this parameter passes the current "this" context to the
-        // function this.handleClick()
-        this.input.on('pointerup',this.handleClick, this);
+            // Define constraints
+            solver.add(x.ge(left));
+            solver.add(x.le(right));
+            solver.add(y.ge(top));
+            solver.add(y.le(bottom));
 
-        this.cKey = this.input.keyboard.addKey('C');
-        this.lowCost = false;
+            // Find solutions
+            while (await solver.check() === "sat") {
+                const model = solver.model();
 
-        const { Solver, Int, And, Or, Distinct } = new window.Context("main");
-        const solver = new Solver();
+                // Get values
+                const xTemp = Number(model.eval(x).value());
+                const yTemp = Number(model.eval(y).value());
 
-        // ddo constraints here
+                // Push valid values to list
+                validX.add(xTemp);
+                validY.add(yTemp);
+                validPairs.push({ x: xTemp, y: yTemp });
 
-        // Wheelbarrow.x > 30 && < 40
-        // Wheelbarrow.y > 5 && < 10
-        // Use original Z3 comparisons to make random constraints
+                // Exclude current solution
+                solver.add(And(x.neq(xTemp), y.neq(yTemp)));
+            }
 
-    }
+            return {
+                // Sort values
+                validX: Array.from(validX).sort((a, b) => a - b),
+                validY: Array.from(validY).sort((a, b) => a - b),
+                // Get random pair
+                randomPair: validPairs[Math.floor(Math.random() * validPairs.length)] || null,
+            };
+        }
 
-    update() {
-        if (Phaser.Input.Keyboard.JustDown(this.cKey)) {
-            if (!this.lowCost) {
-                // Make the path low cost with respect to grassy areas
-                this.setCost(this.tileset);
-                this.lowCost = true;
+        // Output results
+        function outputResult(label, results) {
+            const { validX, validY, randomPair } = results;
+            console.log(label);
+            if (randomPair) {
+                console.log(`x: ${validX.join(" ")}`);
+                console.log(`y: ${validY.join(" ")}`);
+                console.log(`Random (x,y): (${randomPair.x}, ${randomPair.y})`);
+                xVal = randomPair.x;
+                yVal = randomPair.y;
+                
             } else {
-                // Restore everything to same cost
-                this.resetCost(this.tileset);
-                this.lowCost = false;
+                console.log("unsat");
             }
+            console.log("\n");
         }
+
+        const scenarios = [
+            { label: "Inside the fence", constraints: { left: 35, right: 37, top: 3, bottom: 5 } },
+        ];
+
+        // Process scenarios
+        for (const scenario of scenarios) {
+            const results = await getValidValues(scenario.constraints);
+            outputResult(scenario.label, results);
+        }
+
+        // Use original Z3 comparisons to make random constraints
+        this.my.sprite.wheelBarrow.x = this.tileXtoWorld(xVal);
+        this.my.sprite.wheelBarrow.y = this.tileYtoWorld(yVal);
     }
 
-    resetCost(tileset) {
-        for (let tileID = tileset.firstgid; tileID < tileset.total; tileID++) {
-            let props = tileset.getTileProperties(tileID);
-            if (props != null) {
-                if (props.cost != null) {
-                    this.finder.setTileCost(tileID, 1);
-                }
-            }
-        }
-    }
+    update() {}
 
     tileXtoWorld(tileX) {
         return tileX * this.TILESIZE;
@@ -106,72 +130,8 @@ class Pathfinder extends Phaser.Scene {
     }
 
     // layersToGrid
-    //
-    // Uses the tile layer information in this.map and outputs
-    // an array which contains the tile ids of the visible tiles on screen.
-    // This array can then be given to Easystar for use in path finding.
     layersToGrid() {
         let grid = [];
-        // Initialize grid as two-dimensional array
-        // TODO: write initialization code
-
-        // Loop over layers to find tile IDs, store in grid
-        // TODO: write this loop
-
         return grid;
     }
-
-
-    handleClick(pointer) {
-        let x = pointer.x / this.SCALE;
-        let y = pointer.y / this.SCALE;
-        let toX = Math.floor(x/this.TILESIZE);
-        var toY = Math.floor(y/this.TILESIZE);
-        var fromX = Math.floor(this.activeCharacter.x/this.TILESIZE);
-        var fromY = Math.floor(this.activeCharacter.y/this.TILESIZE);
-        console.log('going from ('+fromX+','+fromY+') to ('+toX+','+toY+')');
-    
-        this.finder.findPath(fromX, fromY, toX, toY, (path) => {
-            if (path === null) {
-                console.warn("Path was not found.");
-            } else {
-                console.log(path);
-                this.moveCharacter(path, this.activeCharacter);
-            }
-        });
-        this.finder.calculate(); // ask EasyStar to compute the path
-        // When the path computing is done, the arrow function given with
-        // this.finder.findPath() will be called.
-    }
-    
-    moveCharacter(path, character) {
-        // Sets up a list of tweens, one for each tile to walk, that will be chained by the timeline
-        var tweens = [];
-        for(var i = 0; i < path.length-1; i++){
-            var ex = path[i+1].x;
-            var ey = path[i+1].y;
-            tweens.push({
-                x: ex*this.map.tileWidth,
-                y: ey*this.map.tileHeight,
-                duration: 200
-            });
-        }
-    
-        this.tweens.chain({
-            targets: character,
-            tweens: tweens
-        });
-
-    }
-
-    // A function which takes as input a tileset and then iterates through all
-    // of the tiles in the tileset to retrieve the cost property, and then 
-    // uses the value of the cost property to inform EasyStar, using EasyStar's
-    // setTileCost(tileID, tileCost) function.
-    setCost(tileset) {
-        // TODO: write this function
-    }
-
-
-
 }
